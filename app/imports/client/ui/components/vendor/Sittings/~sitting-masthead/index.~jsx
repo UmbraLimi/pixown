@@ -1,0 +1,171 @@
+import React                     from 'react'
+import DynamicFont               from 'react-dynamic-font'
+import moment                    from 'moment'
+import styled, { keyframes }     from 'styled-components'
+
+import { cssflex }               from '/imports/client/ui/styles/flex-styles.js'
+import { Portlet }               from '/imports/client/ui/components/portlet/portlet.jsx'
+import { fcs_h_w }               from "/imports/3rd-party/styled-components/helpers.js"
+
+//import { Loading }               from '/imports/client/ui/components/loading.jsx';
+import { get_value_type }				from '/imports/client/misc/misc.js'
+
+// ====================================================================
+const Sitting_Masthead = ({ h, w, fcs, ...props }) => {
+	if (props.connect_error) { return (<Loading message={props.message} />) }
+	if (!props.ready) { return (<Loading />) }
+  const { sitting } = props
+
+  const onClick = () => {
+    props.handleRowWasClicked(sitting._id)
+  }
+
+  const _Wrapper = styled.div`
+    ${fcs_h_w(fcs, h, w)};
+    padding:          2px;
+    background-color: white;
+    border:           2px solid gainsboro;
+    ${cssflex.flex_coln_start_start};
+    &:hover {
+      background-color: aliceblue;
+    };
+  `
+  return (
+    <_Wrapper   className={'(Sitting_Masthead)'}
+      onClick={onClick}
+    >
+      <_Sitting_Header  { ...props } fcs='1'         h='100%' w='100%' />
+      <_Sitting_Details { ...props } fcs='0 0 auto'  h='100%' w='' />
+    </_Wrapper>
+  )
+}
+// ====================================================================
+const _Sitting_Header = ({ h, w, fcs, ...props }) => {
+  const { sitting } = props
+  const last_updated = sitting.last_updated
+    ? moment(updated).format('llll')
+    : moment('Jan 1, 2017','MMMDDYYYY').format('llll')
+  const header = [
+    `${sitting.school_code}`,  
+    `${sitting.sitting_code}`,  
+    `${last_updated}`
+  ]
+
+  const _Wrapper = styled.div`
+    ${fcs_h_w(fcs, h, w)};
+    padding:          3px;
+    font-size:        2vh;
+    background-color: limegreen;
+    ${cssflex.flex_row_sb_center};
+  `
+  const _Row = styled.div`
+    flex:             0 0 auto;
+    padding:          1px;
+    color:            black;
+    overflow:         hidden;
+		min-height:       20px;
+    `
+  return (
+    <_Wrapper   className={'(_Sitting_Header)'} >
+      { _.map(header, (line,i) => {
+        return (
+          <_Row   key={i} >
+            <DynamicFont content={ line } />
+          </_Row>
+        )
+      }) }
+    </_Wrapper>
+  )
+}
+// ====================================================================
+const _Sitting_Details = ({ h, w, fcs, ...props }) => {
+  const { sitting } = props
+
+  const _Wrapper = styled.ul`
+    ${fcs_h_w(fcs, h, w)};
+    margin:           0 auto;
+    padding:          10px;
+    overflow-y:       auto;
+    ${cssflex.flex_coln_start_start};
+  `
+  return (
+    <_Wrapper   className={'(_Sitting_Details)'} >
+      <_Detail_Row          { ...props }  fcs='0 1 auto'  h={null}  w='100%'
+        label={ "School" }
+        valueList={ ['School Name'] /*[props.school.name]*/ }
+      />
+
+      <_Detail_Row          { ...props }  fcs='0 1 auto'  h={null}  w='100%'
+        label={ "Sitting" }
+        valueList={ [
+          sitting.photographer
+        ] }
+      />
+    </_Wrapper>
+  )
+}
+// ====================================================================
+const _Detail_Row = ({ h, w, fcs, label, valueList, valueType, ...props }) => {
+  if (_.isNull(label) || _.isUndefined(label) || label==='') {label = '- missing label -'}
+
+  const _Wrapper = styled.div`
+    ${fcs_h_w(fcs, h, w)};
+    ${cssflex.flex_rown_start_stretch};
+  `
+  return (
+    <_Wrapper   className={'(_Detail_Row)'} >
+      <_Label  { ...props }  fcs='1'  h='100%'  w='100%'
+        label={label}
+      />
+      <_Value  { ...props }  fcs='2'  h='100%'  w='100%'
+        valueType={valueType} valueList={valueList}
+      />
+    </_Wrapper>
+  )
+}
+// ====================================================================
+const _Label = ({ h, w, fcs, label, ...props }) => {
+  const _Wrapper = styled.div`
+    ${fcs_h_w(fcs, h, w)};
+    background-color:   aliceblue;
+    border-radius:      4px;
+    padding:            3px 1em 3px 3px;
+    margin:             4px 0 0 0;
+    text-align:         right;
+  `
+  return (
+    <_Wrapper   className={'(_Label)'} >
+      { label }
+    </_Wrapper>
+  )
+}
+// ====================================================================
+const _Value = ({ h, w, fcs, valueType, valueList, ...props }) => {
+  const _Wrapper = styled.div`
+    ${fcs_h_w(fcs, h, w)};
+    border-radius:      4px;
+    padding:            3px 3px 3px 1em;
+    margin:             4px 1em 0 0;
+    ${cssflex.flex_coln_start_start};
+  `
+  const _Row = styled.div`
+    flex:             1;
+  `
+  return (
+    <_Wrapper   className={'(_Value)'} >
+      {
+        _.map(valueList, (value, i) => {
+          const show_value = get_value_type(valueType, value)
+          return (
+            <_Row   key={ i } >
+              { show_value }
+            </_Row>
+          )
+        })
+      }
+    </_Wrapper>
+  )
+}
+// ====================================================================
+
+export { Sitting_Masthead }

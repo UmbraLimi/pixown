@@ -1,0 +1,87 @@
+import React                     from 'react'
+import styled, { keyframes }     from 'styled-components'
+
+import { cssflex }               from '/imports/client/ui/styles/flex-styles.js'
+import { Portlet }               from '/imports/client/ui/components/portlet/portlet.jsx'
+import { fcs_h_w }               from '/imports/3rd-party/styled-components/helpers.js'
+import { Loading }               from '/imports/client/ui/components/loading.jsx'
+import { Action_Button }         from '/imports/client/ui/components/portlet/action-button.jsx'
+import { Option_Button }         from '/imports/client/ui/components/portlet/option-button.jsx'
+
+import { Sittings_Listing }        from '../sittings-listing.jsx'
+
+// ====================================================================
+const Sittings_Popup = ({h, w, fcs, ...props}) => {
+  if (!props.ready) { return (<Loading />) }
+  if (props.sittings.length === 0) { return (<p>{ 'no sittings available' }</p>) }
+
+  // the settings for the Sittings Portlet are passed to it from the callee
+  const handleRowWasClicked = (sitting_id) => {
+    props.handlePopupReturnValue(sitting_id) // send back mongo_id for this sitting
+    props.show_toggle()
+  }
+
+  const handleNewButtonWasClicked = () => {
+    props.saga__sittings_zone__new_sitting_was_selected()
+  }
+
+  const handleExitButtonWasClicked = () => {
+    props.show_toggle()
+  }
+
+  const _Wrapper = styled.div`
+    ${fcs_h_w(fcs, h, w)};
+    padding:         5px;
+    margin:          0 auto;
+    border:          2px black solid;
+    ${cssflex.flex_coln_sb_center}
+  `
+  return (
+    <_Wrapper   className={'(Sittings_Popup)'} >
+      <Portlet { ...props} fcs='1 1 auto' h='' w='100%'
+        title='Sittings Listing'
+        icon={{name:'pencil',code: '\f040'}}
+        theme_name='red' 
+        start_collapsed={false}
+        popup={true}
+        content={Sittings_Listing}
+        actions={{
+          buttons: [
+            _New_ActionButton,
+            _Exit_ActionButton
+          ]
+        }}
+        handleRowWasClicked={handleRowWasClicked}
+        handleNewButtonWasClicked={handleNewButtonWasClicked}
+        handleExitButtonWasClicked={handleExitButtonWasClicked}
+      />
+     {/* you cannot nest a form inside another form - unless you remove the <form> markup!*/}
+     {/*IFF( false ) (
+        <Sitting_Portlet { ...props} fcs='1 1 auto' h='' w='100%' 
+          sitting_mongo_id={props.sitting_mongo_id}
+        />
+      )*/}
+    </_Wrapper>
+  )
+}
+// ====================================================================
+const _Exit_ActionButton = ({...props}) => {
+  return (
+    <Action_Button {...props} // h, w, fcs are passed-thru
+      title={'Exit'}
+      handleClick={props.handleExitButtonWasClicked}
+    />
+  )
+}
+// ====================================================================
+const _New_ActionButton = ({...props}) => {
+  return (
+    <Action_Button {...props} // h, w, fcs are passed-thru
+      title={'New'}
+      handleClick={props.handleNewButtonWasClicked}
+    />
+  )
+}
+// ====================================================================
+
+export { Sittings_Popup }

@@ -1,0 +1,96 @@
+import { bindActionCreators }     from 'redux'
+import { connect }                from 'react-redux'
+import { createContainer }        from 'meteor/react-meteor-data'
+
+import { user_actions, vendor_actions }
+                                  from '/imports/store/action-creators/index.js'
+
+import { Sittings_Popup as Page }   from './sittings-popup.jsx'
+                                  
+import { Sittings }                 from '/imports/collections/Sittings/collection.js'
+import { Vendors }                from '/imports/collections/Vendors/collection.js'
+
+// ====================================================================
+function mapStateToProps(store) { // needs to be there so store changes turn into props
+  return {
+    user:   store.user,
+    vendor_store: store.vendor_store
+  }
+}
+// ====================================================================
+function mapDispatchToProps(dispatch) { // needs to be here to dispatch to these action creatore from the component
+  const actions = {
+    ...user_actions,
+    ...vendor_actions,
+  }
+  return bindActionCreators(actions, dispatch)
+}
+// ====================================================================
+const Meteor_Container = createContainer(props => {
+  // do reactive data access here
+  let vendor = null
+  let sittings = []
+
+  if (!props.user || props.user.user_record === undefined) {
+  return {
+      ready:   false,
+      vendor:  vendor,
+      sittings:  sittings
+    }
+  }
+
+  // the entire PUser record is already in props.user.user_record via login
+  const vendor_code = props.user.user_record.vendor_code
+
+  let subss
+
+  const school_code = props.school_code
+  if (school_code && school_code !== '~ALL') {
+    subss = Meteor.subscribe(
+      'SITTINGS.one-studio-code__one-school-code',
+      vendor_code,
+      school_code
+    )
+  } else {
+    subss = Meteor.subscribe(
+      'SITTINGS.one-studio-code',
+      vendor_code
+    )
+  }
+
+  const subs_vendors = Meteor.subscribe(
+    'VENDORS.one-vendor-code',
+    vendor_code
+  )
+
+  if (subs_vendors.ready()) {
+    vendor = Vendors.findOne({vendor_code: vendor_code})
+  }
+  const find_obj = {}
+  find_obj.studio_code = vendor_code
+  if (school_code && school_code !== '~ALL') {
+    find_obj.school_code = school_code
+  }
+  if (subss.ready()) {
+    sittings = Sittings.find(find_obj,{
+      sort: {
+        school_code: 1,
+        sitting_code: 1
+      }
+    }).fetch()
+  }
+
+  const ready = subss && subss.ready() && subs_vendors && subs_vendors.ready()
+  //console.log("----------------- ready", ready)
+
+  return {
+    ready:      ready,
+    vendor:     vendor,
+    sittings:   sittings
+  }
+}, Page)
+// ====================================================================
+const Sittings_Popup = connect(mapStateToProps, mapDispatchToProps)(Meteor_Container)
+// ====================================================================
+
+export { Sittings_Popup }

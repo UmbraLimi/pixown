@@ -1,0 +1,79 @@
+import React                     from 'react'
+import styled, { keyframes }     from 'styled-components'
+import { _ as __ }               from 'lodash'
+
+import { cssflex }               from '/imports/ui/styles/flex-styles.js'
+import { Portlet }               from '/imports/ui/components/portlet/portlet.jsx'
+import { fcs_h_w }               from '/imports/3rd-party/styled-components/helpers.js'
+
+import { Loading }               from '/imports/ui/components/loading.jsx'
+import { Action_Button }         from '/imports/ui/components/portlet/action-button.jsx'
+import { Option_Button }         from '/imports/ui/components/portlet/option-button.jsx'
+
+import { Files_Form }            from './files-form.jsx'
+
+// ====================================================================
+const Files_Portlet = ({h, w, fcs, ...props}) => {
+	if (props.connect_error) { return (<Loading message={props.message} />) }
+	if (!props.ready) { return (<Loading />) }
+
+  const handleExitButtonWasClicked = () => {
+  }
+
+	const _Wrapper = styled.div`
+		${fcs_h_w(fcs, h, w)};
+		padding:         5px;
+		margin:          0 auto;
+		border:          2px black solid;
+		${cssflex.flex_coln_sb_center}
+  `
+  let action_button_list = [
+    _Exit_ActionButton
+  ]
+  let option_button_list = [
+    _Exit_OptionButton
+  ]
+
+	return (
+		<_Wrapper   className={'(Files_Portlet)'} >
+			<Portlet { ...props} fcs='1 1 auto' h='' w='100%'
+				title='Import Files'
+				icon={{name:'pencil',code: '\f040'}}
+				theme_name='red' 
+				start_collapsed={false}
+				content={Files_Form}
+        options={{
+          button_title: 'Options',
+					buttons: option_button_list
+        }}
+        actions={{
+					buttons: action_button_list
+        }}
+        handleExitButtonWasClicked={handleExitButtonWasClicked}
+			/>
+		</_Wrapper>
+	)
+}
+// ====================================================================
+const _Exit_ActionButton = ({...props}) => {
+  return (
+    <Action_Button {...props} // h, w, fcs are passed-thru
+      title={'Exit'}
+      id={'_Exit_ActionButton'}
+      handleClick={props.handleExitButtonWasClicked}
+    />
+  )
+}
+// ====================================================================
+const _Exit_OptionButton = ({...props}) => {
+  return (
+    <Option_Button {...props} // h, w, fcs are passed-thru
+      title={'Exit'}
+      id={'_Exit_OptionButton'}
+      handleClick={props.handleExitButtonWasClicked}
+    />
+  )
+}
+// ====================================================================
+
+export { Files_Portlet }

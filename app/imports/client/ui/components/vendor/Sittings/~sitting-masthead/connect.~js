@@ -1,0 +1,68 @@
+import { bindActionCreators }   from 'redux'
+import { connect }              from 'react-redux'
+import { createContainer }      from 'meteor/react-meteor-data'
+// ----helpers----------------------
+import { user_actions, vendor_actions }
+                                from '/imports/store/action-creators/index.js'
+// ----collections------------------
+import { Sittings }               from '/imports/collections/Sittings/collection.js'
+import { Vendors }              from '/imports/collections/Vendors/collection.js'
+// ----components-------------------
+import { Sitting_Masthead as Page } 
+                                from './sitting-masthead.jsx'
+// ----devtools---------------------
+import { dev_connect_error }    from '/imports/client/misc/dev-utilities.js'
+
+// ====================================================================
+function mapStateToProps(store) { // needs to be there so store changes turn into props
+  return {
+    user:   store.user,
+    vendor_store: store.vendor_store
+  }
+}
+// ====================================================================
+function mapDispatchToProps(dispatch) { // needs to be here to dispatch to these action creatore from the component
+  const actions = {
+    ...user_actions,
+    ...vendor_actions,
+  }
+  return bindActionCreators(actions, dispatch)
+}
+// ====================================================================
+const Meteor_Container = createContainer(props => {
+  // do reactive data access here
+  const { sitting_mongo_id: mongo_id } = props
+  
+  if (!mongo_id) { return dev_connect_error('---- Missing mongo_id', mongo_id)}
+
+  if (mongo_id === '~NEW') {
+    return {
+      ready:   true,
+      mode:    "NEW",
+      record:  {}
+    }
+  }
+    
+  // ensure that minimongo has the xlate-able records for the codes in this sitting
+  // to be xlated post mount
+  const sub_sitting = Meteor.subscribe(
+    'SITTINGS.composite.one-mongo-id',
+    mongo_id
+  )
+  const ready = sub_sitting.ready()
+  if (!ready) {return {ready: false}}
+
+  const record = Sittings.findOne({'_id': mongo_id})
+  if (!record) { return dev_connect_error('---- mongo_id not found', mongo_id)}
+
+  return {
+    ready:   ready,
+    mode:   'EXISTING',
+    record:  record
+  }
+}, Page)
+// ====================================================================
+const Sitting_Masthead = connect(mapStateToProps, mapDispatchToProps)(Meteor_Container)
+// ====================================================================
+
+export { Sitting_Masthead }

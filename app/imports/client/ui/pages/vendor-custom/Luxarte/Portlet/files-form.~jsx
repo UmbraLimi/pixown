@@ -1,0 +1,249 @@
+import React                    from 'react'
+import { _ as __ }              from 'lodash'
+import styled, { keyframes }    from 'styled-components'
+//import { Bert }                 from 'meteor/themeteorchef:bert'
+import Yup                      from 'yup'
+
+//import { fcs_h_w }              from "/imports/3rd-party/styled-components/helpers.js"
+//import { cssflex }              from '/imports/ui/styles/flex-styles.js'
+
+import { Text_Input}            from '/imports/ui/components/text-input.jsx'
+import { save_record,
+				 handle_value_change,
+				 update_state_for_flags,
+				 initialize_settings,
+				 get_current_errors,
+				 get_current_value
+} 															from '/imports/api/forms/helpers.js'
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//import { checkForChangesInPropsState }	from '/imports/api/misc/dev-utilities.js'
+
+// ====================================================================
+class Files_Form extends React.Component {
+
+	/* fn = fieldname
+	** REACTIVE
+	state.errors[fn]   - contains which fields have errors and shows their error message
+										 	 and their current entry value (that caused error)
+										 - touched fields are always checked for errors
+	state.values[fn].value 
+	state.values[fn].messages 
+										 - just visiting then leaving a field unchanged will not store anything 
+											 for that field unless there is an error
+
+  ** NON-REACTIVE
+	changes.set_unsets[fn] 
+										 - contains SET or UNSET for any field whose value has changed
+											 useful at save time
+	changes.touched[fn]
+										 - contains the fields that the user has clicked on
+	*/
+	// ====================================================================
+	constructor(props){
+		super(props)
+		initialize_settings(this, {})
+		this.schema = 	Yup.object().shape({
+			csv_file: 			Yup.string().required(),
+			csv_folder: 		Yup.string(),
+			upload_type: 		Yup.string().required(),
+			comment:				Yup.string(),
+			latest_error:		Yup.string()
+  	})
+	}	
+	// ====================================================================
+	shouldComponentUpdate = (nextProps, nextState) => {
+		return checkForChangesInPropsState('Files_Form', this, nextProps, nextState, logg=2, 
+			//[], ['is_dirty', 'is_saveable']
+		)
+	}
+	// ====================================================================
+	handleTouched = (fieldname) => {
+		this.changes.touched[fieldname] = true
+	}
+	// ====================================================================
+	handle_form_has_validated = async (record) => {
+		try {
+			if (record.upload_type === 'location') {
+				await Meteor.callPromise('LUXARTE.import_location', record, this.props.vendor.vendor_code)
+			}
+		} catch(error) {
+			throw error // pass the error along
+		}
+	}
+	// ====================================================================
+	handleSchoolCodeChange = (school_record) => {
+		this.handleValueChange('school_code', school_record.school_code)
+	}
+	// ====================================================================
+	handleSubmit = (event) => {
+		update_state_for_flags(this, this.schema) // whole form check (probably not needed)
+		if (this.state.is_saveable && this.state.is_dirty) {
+			// the form is valid
+			let record = _.clone(this.state.values)
+			this.handle_form_has_validated(record)
+		}
+	}
+	// ====================================================================
+	handleValueChange = (fieldname, newvalue, do_validation=true) => {
+		handle_value_change(this, this.schema, fieldname, newvalue, do_validation)
+		// this and this.schema are needed separately as handle_value_change is used 
+		// by collector forms (like here) and db forms
+		
+		if (fieldname === 'csv_file') {
+			const folder = this.get_folder(newvalue)
+			.then((folder) => {
+				this.handleValueChange('csv_folder', folder)
+			})
+			.catch((error) => {
+				this.handleValueChange('latest_error', error.reason)
+			})
+		}
+	}
+	// ====================================================================
+	get_folder = async (filename) => {
+		try {
+			const folder = await Meteor.callPromise('FILES.Promise__find_folder_via_walk', filename)
+			Bert.alert("Folder is " + folder, 'success')
+			return folder
+		} catch(error) {
+			console.log('*** ERROR unble to find folder (get_folder() )', '--', error)
+			Bert.alert("Error " + error.reason, 'danger')
+			throw error // pass the error along
+			//return undefined
+		}
+	}
+	// ====================================================================
+	componentDidMount = () => {
+		if (true) {
+			this.handleValueChange('csv_file', 'Location Filemaker Export.csv')
+			this.handleValueChange('upload_type', 'location')
+			this.handleValueChange('comment', "this is fun")
+		}
+	}
+	// ====================================================================
+	getCurrentValue = (fieldname) => {
+		return get_current_value(this, fieldname)
+	}
+	// ====================================================================
+	current_touch = (fieldname) => {
+		return this.changes.touched[fieldname] || false
+	}
+	// ====================================================================
+	getCurrentErrors = (fieldname) => {
+		return get_current_errors(this, fieldname)
+	}
+	// ====================================================================
+	render() {
+		const h=''
+		const w='100%'
+		const fcs='1 1 auto'
+
+		const _CheckButton = styled.div`
+			display:           block;
+			text-align:        center;
+			width:             100%;
+			margin:            40px 0 0 0;
+			padding:           12px 20px;
+			border-style:      none;
+			border-radius:     5px;
+			background-color:  ${this.state.is_saveable && this.state.is_dirty ? '#08c' : 'gainsboro'};
+			box-shadow:        0px 2px 2px rgba(0, 0, 0, 0.15);
+			font-size:         17px;
+			font-weight:       500;
+			color:             #FFF;
+			cursor:            pointer;
+			outline:           none;
+			webkit-appearance: none;
+		`
+		const _Div = styled.div`
+			${fcs_h_w(fcs, h, w)};
+			padding:         5px;
+			max-width: 			 500px;
+			min-height:      400px;
+			margin:          0 auto;
+			${cssflex.flex_coln_center_center}
+		`
+		return (
+			<_Div    className={'(Login_Form)'} >
+				<Text_Input
+					id="csv_file"
+					key="csv_file"
+					label="Select .CSV"
+					input_type={this.getCurrentValue('csv_file') === ''
+						? 'file'
+						: 'text'
+					}
+					disabled={this.getCurrentValue('csv_file') === ''
+						? false
+						: true
+					}
+					file_accept='.csv'
+					value={this.getCurrentValue('csv_file')}
+					error={this.getCurrentErrors('csv_file')}
+					handleValueChange={this.handleValueChange}
+					handleTouched={this.handleTouched}
+				/>
+
+				<Text_Input
+					id="csv_folder"
+					key="csv_folder"
+					disabled={true}
+					label="CSV Folder"
+					placeholder=""
+					title=""
+					value={this.getCurrentValue('csv_folder')}
+					error={this.getCurrentErrors('csv_folder')}
+					handleValueChange={this.handleValueChange}
+					handleTouched={this.handleTouched}
+					//hidden={true}
+				/>
+
+				<Text_Input
+					id="upload_type"
+					key="upload_type"
+					label="upload_type"
+					placeholder=""
+					value={this.getCurrentValue('upload_type')}
+					error={this.getCurrentErrors('upload_type')}
+					handleValueChange={this.handleValueChange}
+					handleTouched={this.handleTouched}
+				/>
+
+				<Text_Input
+					id="comment"
+					key="comment"
+					label="comment"
+					multiline={true}
+					placeholder=""
+					value={this.getCurrentValue('comment')}
+					error={this.getCurrentErrors('comment')}
+					handleValueChange={this.handleValueChange}
+					handleTouched={this.handleTouched}
+				/>
+
+				<Text_Input
+					id="latest_error"
+					key="latest_error"
+					disabled={true}
+					label="Latest Error"
+					placeholder=""
+					title=""
+					value={this.getCurrentValue('latest_error')}
+					error={this.getCurrentErrors('latest_error')}
+					handleValueChange={this.handleValueChange}
+					handleTouched={this.handleTouched}
+					hidden={this.getCurrentValue('latest_error')===''}
+				/>
+
+				<_CheckButton className={'CheckButton)'}
+					onClick={this.handleSubmit}
+				>
+					Import Data/Images
+				</_CheckButton>
+			</_Div>
+		)
+	}
+}
+// ====================================================================
+
+export { Files_Form }
